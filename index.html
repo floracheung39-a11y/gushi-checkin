@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>诗词星轨 · 古诗文打卡</title>
 <script src="poems_data.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
 <style>
   :root{
     --ink:#3a3226; --gold:#8e6b3f; --gold-l:#c9a063; --paper:#f6f3ee;
@@ -56,13 +59,15 @@
   .detail{display:none;padding:6px 22px 18px;border-top:1px dashed var(--line);}
   .card.open .detail{display:block;}
 
-  .poem-text{font-family:"华文楷体","楷体","STKaiti","KaiTi","Adobe 楷体 Std R","Kaiti SC",serif;font-size:26px;line-height:1;color:#33291c;margin:18px 0;text-align:center;user-select:none;}
+  .poem-text{font-family:"Kaiti SC","STKaiti","DFKai-SB","BiauKai","华文楷体","楷体","KaiTi","Adobe 楷体 Std R","Ma Shan Zheng",serif;font-size:26px;line-height:1;color:#33291c;margin:18px 0;text-align:center;user-select:none;}
+  /* 每个字占固定宽度的格子：五言/七言上下行严格对齐，字间距随格子自然拉开 */
   .poem-text .line{display:block;margin-bottom:1.1em;}
   .cell{display:inline-block;width:1.7em;height:2em;position:relative;text-align:center;vertical-align:bottom;}
-  .cell .hz{display:inline-block;line-height:2em;font-family:"华文楷体","楷体","STKaiti","KaiTi","Adobe 楷体 Std R","Kaiti SC",serif;}
+  .cell .hz{display:inline-block;line-height:2em;font-family:"Kaiti SC","STKaiti","DFKai-SB","BiauKai","华文楷体","楷体","KaiTi","Adobe 楷体 Std R","Ma Shan Zheng",serif;}
   .cell .py{position:absolute;left:50%;bottom:100%;transform:translateX(-50%);font-family:ui-monospace,"Cascadia Mono",Consolas,"Courier New",Menlo,Monaco,monospace;font-size:0.55em;letter-spacing:0.02em;color:#a08c68;white-space:nowrap;line-height:1;}
   .cell.punct{width:0.8em;line-height:2em;}
   .no-pinyin .cell .py{display:none;}
+  /* 背诵自测：隐藏原文只留拼音 */
   .hide-char .cell .hz{color:transparent;text-shadow:none;background:#e8ddc8;border-radius:3px;}
   .hide-char .cell .hz:hover{color:#33291c;background:transparent;}
 
@@ -79,6 +84,7 @@
   #toast.show{opacity:1;transform:translate(-50%,-50%) scale(1);}
   #toast .big{font-size:42px;display:block;margin-bottom:4px;line-height:1;}
   .empty{text-align:center;color:#b3a488;padding:50px 0;line-height:2;}
+  .hf{display:flex;gap:8px;align-items:center;}
   @media(max-width:640px){
     .poem-text{font-size:22px;}
     header h1{font-size:16px;letter-spacing:1px;}
@@ -91,6 +97,7 @@
 <header>
   <h1>📜 诗词星轨 · 古诗文打卡</h1>
   <div class="user-switch" id="userSwitch">
+    <!-- 用户按钮由脚本渲染 -->
     <button class="user-btn add" onclick="addUser()" title="新增用户">＋ 用户</button>
     <button class="user-btn icon" onclick="removeUser()" title="删除当前用户">🗑️</button>
     <button class="user-btn icon" onclick="exportData()" title="导出备份">💾</button>
@@ -138,6 +145,7 @@
 <div id="toast"></div>
 
 <script>
+/* ================= 配置 ================= */
 const TOTAL = window.POEMS ? POEMS.length : 0;
 const P_TOTAL = window.POEMS ? POEMS.filter(p=>p.grade<=6).length : 0;
 const M_TOTAL = TOTAL - P_TOTAL;
@@ -155,6 +163,7 @@ const BADGES = [
   {key:"mAll", emoji:"🎖️", name:"初中通关", special:"middle",  desc:`背完初中 ${M_TOTAL} 首`},
 ];
 
+/* ================= 状态 ================= */
 let cur = localStorage.getItem("gsc_user") || "Jasper";
 let stage = "all", only = "", showPinyin = true, quiz = false;
 
@@ -162,6 +171,7 @@ const TONE = {
   a:["ā","á","ǎ","à"], o:["ō","ó","ǒ","ò"], e:["ē","é","ě","è"],
   i:["ī","í","ǐ","ì"], u:["ū","ú","ǔ","ù"], v:["ǖ","ǘ","ǚ","ǜ"]
 };
+/* 标调规则：有 a 标 a；没 a 有 o/e 标 o/e；iu 标 u；ui 标 i；否则标最后一个元音 */
 function mark(p, t){
   if(!t) return p.replace(/v/g,"ü");
   let idx = -1;
@@ -182,6 +192,7 @@ function today(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMon
 function shiftDay(s, n){ const d=new Date(s+"T00:00:00"); d.setDate(d.getDate()+n); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 const gradeLabel = g => (g<=6?"小学":"初中") + (g<=6?g:g-6) + "年级";
 
+/* ================= 用户管理 ================= */
 const DEFAULT_USERS = ["Jasper","Evelyn"];
 function userList(){
   let list;
@@ -247,6 +258,7 @@ function switchUser(u){
   render();
 }
 
+/* ================= 打卡 / 撤销 ================= */
 function checkIn(id){
   const d = store();
   if(d[id]) return;
@@ -265,6 +277,7 @@ function undo(id){
   render();
 }
 
+/* ================= 徽章 ================= */
 function calcBadges(){
   const d = store();
   const stars = Object.keys(d).length;
@@ -297,13 +310,16 @@ function miniToast(msg){
   setTimeout(()=>t.classList.remove("show"), 1100);
 }
 
+/* ================= 排版：短句合并、长句独立 ================= */
 function poemLines(p){
+  // 先按标点切成片段（标点留在片段内）
   const frags = []; let frag = [];
   p.chars.forEach(ch=>{
     frag.push(ch);
     if("，。？！；：".includes(ch.c)){ frags.push(frag); frag = []; }
   });
   if(frag.length) frags.push(frag);
+  // ≤3 个汉字的连续短句合并为一行（如"鹅，鹅，鹅，"）；≥4 字的句子独立成行
   const lines = []; let buffer = [];
   frags.forEach(f=>{
     const hanCount = f.filter(c=>c.p).length;
@@ -318,6 +334,7 @@ function poemLines(p){
   return lines;
 }
 
+/* ================= 渲染 ================= */
 function render(){
   const el = document.getElementById("list");
   if(!window.POEMS){
@@ -398,6 +415,7 @@ function toggleCard(id){
   document.getElementById("card-"+id).classList.toggle("open");
 }
 
+/* ================= 朗读 ================= */
 function speak(id, btn){
   if(!("speechSynthesis" in window)){ miniToast("当前浏览器不支持朗读"); return; }
   const p = POEMS.find(x=>x.id===id);
@@ -413,6 +431,7 @@ function speak(id, btn){
   window.speechSynthesis.speak(u);
 }
 
+/* ================= 筛选初始化 ================= */
 function initFilters(){
   const dynasties = [...new Set(POEMS.map(p=>p.dynasty))];
   const authors   = [...new Set(POEMS.map(p=>p.author))];
@@ -446,6 +465,7 @@ function initFilters(){
   });
 }
 
+/* ================= 备份 / 恢复 ================= */
 function exportData(){
   const data = {user: cur, records: store(), exported: today()};
   const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
@@ -465,7 +485,7 @@ function importData(ev){
       localStorage.setItem("gsc_"+u, JSON.stringify(data.records || {}));
       const list = userList();
       if(!list.includes(u)){ list.push(u); saveUserList(list); }
-      alert("✅ 已恢复 " + u + " 的打卡数据");
+      alert("✅ 已恢复 " + u + " 的打卡记录");
       ev.target.value = "";
       if(u !== cur) switchUser(u); else render();
     }catch(e){ alert("文件格式不正确"); }
@@ -473,6 +493,7 @@ function importData(ev){
   r.readAsText(f);
 }
 
+/* ================= 启动 ================= */
 if(window.POEMS){ initFilters(); if("speechSynthesis" in window) speechSynthesis.getVoices(); }
 render();
 </script>
