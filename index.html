@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>诗词星轨 · 古诗文打卡</title>
+<script src="poems_data.js"></script>
+<style>
+  :root{
+    --ink:#3a3226; --gold:#8e6b3f; --gold-l:#c9a063; --paper:#f6f3ee;
+    --line:#e5dac4; --muted:#9a8b76; --done:#f3f9ee;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;font-family:"PingFang SC","Microsoft YaHei",sans-serif;-webkit-tap-highlight-color:transparent;}
+  body{background:var(--paper);color:var(--ink);min-height:100vh;}
+
+  header{background:linear-gradient(135deg,#8e6b3f,#c9a063);color:#fff;padding:16px 24px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.15);position:sticky;top:0;z-index:50;}
+  header h1{font-size:20px;letter-spacing:2px;font-weight:600;}
+  .user-switch{display:flex;gap:8px;align-items:center;}
+  .user-btn{padding:7px 16px;border-radius:20px;border:2px solid rgba(255,255,255,.55);background:transparent;color:#fff;cursor:pointer;font-size:14.5px;transition:.2s;}
+  .user-btn:hover{background:rgba(255,255,255,.18);}
+  .user-btn.active{background:#fff;color:var(--gold);font-weight:bold;border-color:#fff;}
+  .user-btn.icon{padding:7px 11px;}
+  .user-btn.add{border-style:dashed;}
+
+  .stats{display:flex;gap:10px;background:#fffdf8;padding:12px 24px;flex-wrap:wrap;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+  .stat{text-align:center;min-width:84px;}
+  .stat b{display:block;font-size:21px;color:var(--gold);}
+  .stat span{font-size:12px;color:var(--muted);}
+
+  .filters{display:flex;gap:9px;flex-wrap:wrap;padding:14px 24px 6px;align-items:center;max-width:1140px;margin:0 auto;}
+  .filters select,.filters input{padding:7px 10px;border:1px solid #d8cbb6;border-radius:8px;background:#fff;font-size:13.5px;color:#5a4d3a;outline:none;}
+  .filters input:focus,.filters select:focus{border-color:var(--gold-l);}
+  .filters input{width:170px;}
+  .seg{display:inline-flex;border:1px solid #d8cbb6;border-radius:8px;overflow:hidden;background:#fff;}
+  .seg button{padding:7px 13px;border:none;background:transparent;cursor:pointer;font-size:13px;color:#7a6a52;transition:.15s;}
+  .seg button.on{background:var(--gold);color:#fff;}
+
+  .badge-wrap{max-width:1140px;margin:8px auto 0;padding:0 24px;}
+  .badge-bar{display:flex;gap:9px;overflow-x:auto;padding:4px 2px 6px;scrollbar-width:thin;}
+  .badge{min-width:80px;text-align:center;padding:9px 6px;border-radius:11px;background:#f4efe5;filter:grayscale(1);opacity:.5;transition:.3s;}
+  .badge.earned{background:linear-gradient(145deg,#fff3d6,#ffe3a8);filter:none;opacity:1;box-shadow:0 2px 7px rgba(240,168,50,.35);}
+  .badge .be{font-size:23px;display:block;line-height:1.2;}
+  .badge .bt{font-size:11px;color:#7a5a32;display:block;margin-top:2px;white-space:nowrap;}
+
+  main{padding:6px 24px 70px;max-width:1140px;margin:0 auto;}
+  .card{background:#fff;border-radius:12px;margin-bottom:11px;box-shadow:0 1px 5px rgba(0,0,0,.07);overflow:hidden;transition:.2s;}
+  .card.done{background:var(--done);}
+  .card.open{box-shadow:0 3px 14px rgba(142,107,63,.16);}
+  .card-head{display:flex;align-items:center;gap:11px;padding:13px 17px;cursor:pointer;flex-wrap:wrap;}
+  .card-head h3{font-size:16.5px;color:#4a3d2a;font-weight:600;}
+  .meta{font-size:12.5px;color:#a08d70;}
+  .grade-tag{font-size:11px;background:#efe6d5;color:var(--gold);padding:3px 9px;border-radius:10px;white-space:nowrap;}
+  .star{margin-left:auto;color:#d9c9a8;font-size:19px;}
+  .card.done .star{color:#f0a832;text-shadow:0 0 6px rgba(240,168,50,.5);}
+
+  .detail{display:none;padding:6px 22px 18px;border-top:1px dashed var(--line);}
+  .card.open .detail{display:block;}
+
+  .poem-text{font-family:"华文楷体","楷体","STKaiti","KaiTi","Adobe 楷体 Std R","Kaiti SC",serif;font-size:26px;line-height:1;color:#33291c;margin:18px 0;text-align:center;user-select:none;}
+  .poem-text .line{display:block;margin-bottom:1.1em;}
+  .cell{display:inline-block;width:1.7em;height:2em;position:relative;text-align:center;vertical-align:bottom;}
+  .cell .hz{display:inline-block;line-height:2em;font-family:"华文楷体","楷体","STKaiti","KaiTi","Adobe 楷体 Std R","Kaiti SC",serif;}
+  .cell .py{position:absolute;left:50%;bottom:100%;transform:translateX(-50%);font-family:ui-monospace,"Cascadia Mono",Consolas,"Courier New",Menlo,Monaco,monospace;font-size:0.55em;letter-spacing:0.02em;color:#a08c68;white-space:nowrap;line-height:1;}
+  .cell.punct{width:0.8em;line-height:2em;}
+  .no-pinyin .cell .py{display:none;}
+  .hide-char .cell .hz{color:transparent;text-shadow:none;background:#e8ddc8;border-radius:3px;}
+  .hide-char .cell .hz:hover{color:#33291c;background:transparent;}
+
+  .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:6px;}
+  .btn{padding:8px 20px;border-radius:22px;border:none;cursor:pointer;font-size:14px;transition:.15s;}
+  .btn-primary{background:var(--gold);color:#fff;}
+  .btn-primary:hover{background:#7a5a32;}
+  .btn-ghost{background:#f0e9db;color:var(--gold);}
+  .btn-ghost:hover{background:#e7ddc9;}
+  .btn-undo{background:#fbeaea;color:#b05252;}
+  .date-info{font-size:13px;color:#7faf62;}
+
+  #toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.8);background:linear-gradient(145deg,#fff8e6,#ffe9b8);border:2px solid #f0c96a;padding:24px 42px;border-radius:18px;text-align:center;font-size:18px;color:#7a5a32;box-shadow:0 8px 30px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.3s;z-index:99;line-height:1.7;}
+  #toast.show{opacity:1;transform:translate(-50%,-50%) scale(1);}
+  #toast .big{font-size:42px;display:block;margin-bottom:4px;line-height:1;}
+  .empty{text-align:center;color:#b3a488;padding:50px 0;line-height:2;}
+  @media(max-width:640px){
+    .poem-text{font-size:22px;}
+    header h1{font-size:16px;letter-spacing:1px;}
+    .filters input{width:100%;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📜 诗词星轨 · 古诗文打卡</h1>
+  <div class="user-switch" id="userSwitch">
+    <button class="user-btn add" onclick="addUser()" title="新增用户">＋ 用户</button>
+    <button class="user-btn icon" onclick="removeUser()" title="删除当前用户">🗑️</button>
+    <button class="user-btn icon" onclick="exportData()" title="导出备份">💾</button>
+    <button class="user-btn icon" onclick="document.getElementById('imp').click()" title="导入备份">📂</button>
+    <input type="file" id="imp" accept=".json" style="display:none" onchange="importData(event)">
+  </div>
+</header>
+
+<div class="stats">
+  <div class="stat"><b id="stStars">0</b><span>总星标</span></div>
+  <div class="stat"><b id="stCount">0 / 0</b><span>已背篇数</span></div>
+  <div class="stat"><b id="stToday">0</b><span>今日打卡</span></div>
+  <div class="stat"><b id="stStreak">0</b><span>连续天数</span></div>
+  <div class="stat"><b id="stBadge">0 / 0</b><span>徽章</span></div>
+</div>
+
+<div class="filters">
+  <div class="seg" id="stageSeg">
+    <button class="on" data-s="all">全部</button>
+    <button data-s="p">小学</button>
+    <button data-s="m">初中</button>
+  </div>
+  <select id="fGrade"><option value="">全部年级</option></select>
+  <select id="fDynasty"><option value="">全部朝代</option></select>
+  <select id="fAuthor"><option value="">全部诗人</option></select>
+  <input id="fSearch" placeholder="搜索诗名 / 诗句">
+  <div class="seg" id="stateSeg">
+    <button class="on" data-v="">全部</button>
+    <button data-v="todo">未背</button>
+    <button data-v="done">已背</button>
+  </div>
+  <div class="seg" id="pySeg">
+    <button class="on" data-v="1">拼音 开</button>
+    <button data-v="0">拼音 关</button>
+  </div>
+  <div class="seg" id="quizSeg">
+    <button data-v="1">自测 开</button>
+    <button class="on" data-v="0">自测 关</button>
+  </div>
+</div>
+
+<div class="badge-wrap"><div class="badge-bar" id="badgeBar"></div></div>
+
+<main id="list"></main>
+<div id="toast"></div>
+
+<script>
+const TOTAL = window.POEMS ? POEMS.length : 0;
+const P_TOTAL = window.POEMS ? POEMS.filter(p=>p.grade<=6).length : 0;
+const M_TOTAL = TOTAL - P_TOTAL;
+
+const BADGES = [
+  {key:"s1",   emoji:"⭐", name:"初露锋芒", need:1,        desc:"背会第 1 首"},
+  {key:"s10",  emoji:"🌱", name:"诗苗新芽", need:10,       desc:"累计 10 颗星"},
+  {key:"s25",  emoji:"🌿", name:"小诗人",   need:25,       desc:"累计 25 颗星"},
+  {key:"s50",  emoji:"🌳", name:"诗词达人", need:50,       desc:"累计 50 颗星"},
+  {key:"s75",  emoji:"🏅", name:"诗林高手", need:75,       desc:"累计 75 颗星"},
+  {key:"s100", emoji:"🏆", name:"小小诗仙", need:100,      desc:"累计 100 颗星"},
+  {key:"s120", emoji:"💎", name:"腹有诗书", need:120,      desc:"累计 120 颗星"},
+  {key:"sAll", emoji:"👑", name:"大满贯",   need:TOTAL,    desc:`背完全部 ${TOTAL} 首`},
+  {key:"pAll", emoji:"🎓", name:"小学通关", special:"primary", desc:`背完小学 ${P_TOTAL} 首`},
+  {key:"mAll", emoji:"🎖️", name:"初中通关", special:"middle",  desc:`背完初中 ${M_TOTAL} 首`},
+];
+
+let cur = localStorage.getItem("gsc_user") || "Jasper";
+let stage = "all", only = "", showPinyin = true, quiz = false;
+
+const TONE = {
+  a:["ā","á","ǎ","à"], o:["ō","ó","ǒ","ò"], e:["ē","é","ě","è"],
+  i:["ī","í","ǐ","ì"], u:["ū","ú","ǔ","ù"], v:["ǖ","ǘ","ǚ","ǜ"]
+};
+function mark(p, t){
+  if(!t) return p.replace(/v/g,"ü");
+  let idx = -1;
+  if(p.includes("a")) idx = p.indexOf("a");
+  else if(p.includes("o")) idx = p.indexOf("o");
+  else if(p.includes("e")) idx = p.indexOf("e");
+  else if(p.includes("iu")) idx = p.indexOf("iu") + 1;
+  else if(p.includes("ui")) idx = p.indexOf("ui");
+  else for(let i=p.length-1;i>=0;i--){ if("iuv".includes(p[i])){ idx=i; break; } }
+  if(idx < 0) return p.replace(/v/g,"ü");
+  const v = p[idx];
+  return (p.slice(0,idx) + (TONE[v]?TONE[v][t-1]:v) + p.slice(idx+1)).replace(/v/g,"ü");
+}
+
+const store = () => JSON.parse(localStorage.getItem("gsc_"+cur) || "{}");
+const save  = d => localStorage.setItem("gsc_"+cur, JSON.stringify(d));
+function today(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function shiftDay(s, n){ const d=new Date(s+"T00:00:00"); d.setDate(d.getDate()+n); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+const gradeLabel = g => (g<=6?"小学":"初中") + (g<=6?g:g-6) + "年级";
+
+const DEFAULT_USERS = ["Jasper","Evelyn"];
+function userList(){
+  let list;
+  try{ list = JSON.parse(localStorage.getItem("gsc_users") || "null"); }catch(e){ list = null; }
+  if(!Array.isArray(list) || !list.length) list = DEFAULT_USERS.slice();
+  return list;
+}
+function saveUserList(list){ localStorage.setItem("gsc_users", JSON.stringify(list)); }
+
+function renderUsers(){
+  const box = document.getElementById("userSwitch");
+  const addBtn = box.querySelector(".add");
+  box.querySelectorAll(".user-btn[data-u]").forEach(b=>b.remove());
+  const list = userList();
+  list.forEach(u=>{
+    const b = document.createElement("button");
+    b.className = "user-btn" + (u === cur ? " active" : "");
+    b.dataset.u = u;
+    b.textContent = (u === cur ? "👤 " : "") + u;
+    b.onclick = () => switchUser(u);
+    box.insertBefore(b, addBtn);
+  });
+  if(!list.includes(cur)) cur = list[0];
+}
+
+function addUser(){
+  const name = (prompt("请输入新用户名：") || "").trim();
+  if(!name) return;
+  if(name.length > 12){ alert("用户名最多 12 个字"); return; }
+  const list = userList();
+  if(list.some(u => u.toLowerCase() === name.toLowerCase())){
+    alert("「" + name + "」已存在，已为你切换过去");
+    switchUser(list.find(u => u.toLowerCase() === name.toLowerCase()));
+    return;
+  }
+  list.push(name);
+  saveUserList(list);
+  cur = name;
+  localStorage.setItem("gsc_user", name);
+  render();
+  miniToast("已添加用户 " + name);
+}
+
+function removeUser(){
+  const list = userList();
+  if(list.length <= 1){ alert("至少要保留一个用户"); return; }
+  const stars = Object.keys(store()).length;
+  if(!confirm(`确定删除用户「${cur}」吗？\n该用户的 ${stars} 条打卡记录将一并清除，且无法恢复。`)) return;
+  localStorage.removeItem("gsc_" + cur);
+  localStorage.removeItem("gsc_badges_" + cur);
+  const idx = list.indexOf(cur);
+  list.splice(idx, 1);
+  saveUserList(list);
+  cur = list[0];
+  localStorage.setItem("gsc_user", cur);
+  render();
+  miniToast("已删除该用户");
+}
+
+function switchUser(u){
+  cur = u;
+  localStorage.setItem("gsc_user", u);
+  render();
+}
+
+function checkIn(id){
+  const d = store();
+  if(d[id]) return;
+  d[id] = {date: today()};
+  save(d);
+  const got = calcBadges().filter(b => b.newly);
+  render();
+  if(got.length) showToast(got); else miniToast("⭐ +1 打卡成功！");
+}
+function undo(id){
+  const d = store();
+  if(!d[id]) return;
+  if(!confirm("确定取消这首诗的打卡记录吗？")) return;
+  delete d[id];
+  save(d);
+  render();
+}
+
+function calcBadges(){
+  const d = store();
+  const stars = Object.keys(d).length;
+  const pDone = POEMS.filter(p=>p.grade<=6 && d[p.id]).length;
+  const mDone = POEMS.filter(p=>p.grade>=7 && d[p.id]).length;
+  const earnedKeys = JSON.parse(localStorage.getItem("gsc_badges_"+cur) || "[]");
+  return BADGES.map(b=>{
+    let earned;
+    if(b.special==="primary") earned = pDone >= P_TOTAL;
+    else if(b.special==="middle") earned = mDone >= M_TOTAL;
+    else earned = stars >= b.need;
+    return {...b, earned, newly: earned && !earnedKeys.includes(b.key)};
+  });
+}
+function persistBadges(){
+  localStorage.setItem("gsc_badges_"+cur,
+    JSON.stringify(calcBadges().filter(b=>b.earned).map(b=>b.key)));
+}
+function showToast(bs){
+  const t = document.getElementById("toast");
+  t.innerHTML = `<span class="big">🎉</span>恭喜 ${cur} 获得新徽章！<br>` +
+    bs.map(b=>`${b.emoji}「${b.name}」`).join("<br>");
+  t.classList.add("show");
+  setTimeout(()=>{ t.classList.remove("show"); persistBadges(); render(); }, 2600);
+}
+function miniToast(msg){
+  const t = document.getElementById("toast");
+  t.innerHTML = `<span class="big">⭐</span>${msg}`;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 1100);
+}
+
+function poemLines(p){
+  const frags = []; let frag = [];
+  p.chars.forEach(ch=>{
+    frag.push(ch);
+    if("，。？！；：".includes(ch.c)){ frags.push(frag); frag = []; }
+  });
+  if(frag.length) frags.push(frag);
+  const lines = []; let buffer = [];
+  frags.forEach(f=>{
+    const hanCount = f.filter(c=>c.p).length;
+    if(hanCount <= 3){
+      buffer.push(...f);
+    }else{
+      if(buffer.length){ lines.push(buffer); buffer = []; }
+      lines.push(f);
+    }
+  });
+  if(buffer.length) lines.push(buffer);
+  return lines;
+}
+
+function render(){
+  const el = document.getElementById("list");
+  if(!window.POEMS){
+    el.innerHTML = '<div class="empty">⚠️ 没有找到 poems_data.js<br>请把它和本页面放在同一个文件夹里</div>';
+    return;
+  }
+  renderUsers();
+  const d = store();
+  const stars = Object.keys(d).length;
+  const t = today();
+  const todayCount = Object.values(d).filter(v=>v.date===t).length;
+  const activeDays = new Set(Object.values(d).map(v=>v.date));
+  let streak = 0, day = t;
+  while(activeDays.has(day)){ streak++; day = shiftDay(day, -1); }
+
+  document.getElementById("stStars").textContent = stars;
+  document.getElementById("stCount").textContent = stars + " / " + TOTAL;
+  document.getElementById("stToday").textContent = todayCount;
+  document.getElementById("stStreak").textContent = streak;
+
+  const bList = calcBadges();
+  document.getElementById("stBadge").textContent = bList.filter(b=>b.earned).length + " / " + BADGES.length;
+  document.getElementById("badgeBar").innerHTML = bList.map(b=>`
+    <div class="badge ${b.earned?"earned":""}" title="${b.desc}">
+      <span class="be">${b.earned?b.emoji:"🔒"}</span>
+      <span class="bt">${b.name}</span>
+    </div>`).join("");
+
+  const fg = document.getElementById("fGrade").value;
+  const fd = document.getElementById("fDynasty").value;
+  const fa = document.getElementById("fAuthor").value;
+  const fs = document.getElementById("fSearch").value.trim();
+
+  const list = POEMS.filter(p=>{
+    if(stage==="p" && p.grade>6) return false;
+    if(stage==="m" && p.grade<=6) return false;
+    if(fg && p.grade !== +fg) return false;
+    if(fd && p.dynasty !== fd) return false;
+    if(fa && p.author !== fa) return false;
+    if(fs && !p.title.includes(fs) && !p.text.includes(fs) && !p.author.includes(fs)) return false;
+    if(only==="todo" && d[p.id]) return false;
+    if(only==="done" && !d[p.id]) return false;
+    return true;
+  });
+
+  el.innerHTML = list.length ? list.map(p=>{
+    const done = !!d[p.id];
+    const body = poemLines(p).map(line =>
+      `<span class="line">` + line.map(ch =>
+        ch.p
+          ? `<span class="cell"><span class="py">${mark(ch.p, ch.t)}</span><span class="hz">${ch.c}</span></span>`
+          : `<span class="cell punct">${ch.c}</span>`
+      ).join("") + `</span>`
+    ).join("");
+    return `
+    <div class="card ${done?"done":""}" id="card-${p.id}">
+      <div class="card-head" onclick="toggleCard('${p.id}')">
+        <h3>${p.title}</h3>
+        <span class="meta">${p.dynasty} · ${p.author}</span>
+        <span class="grade-tag">${gradeLabel(p.grade)}</span>
+        <span class="star">${done?"⭐":"☆"}</span>
+      </div>
+      <div class="detail">
+        <div class="poem-text ${showPinyin?"":"no-pinyin"} ${quiz?"hide-char":""}">${body}</div>
+        <div class="actions">
+          <button class="btn btn-ghost" onclick="event.stopPropagation();speak('${p.id}',this)">🔊 朗读</button>
+          ${done
+            ? `<span class="date-info">✅ ${d[p.id].date} 背会</span>
+               <button class="btn btn-undo" onclick="event.stopPropagation();undo('${p.id}')">撤销打卡</button>`
+            : `<button class="btn btn-primary" onclick="event.stopPropagation();checkIn('${p.id}')">🎯 背会打卡 +1⭐</button>`}
+        </div>
+      </div>
+    </div>`;
+  }).join("") : '<div class="empty">没有符合筛选条件的诗文<br><span style="font-size:13px">试试切换筛选或清空搜索</span></div>';
+}
+
+function toggleCard(id){
+  document.getElementById("card-"+id).classList.toggle("open");
+}
+
+function speak(id, btn){
+  if(!("speechSynthesis" in window)){ miniToast("当前浏览器不支持朗读"); return; }
+  const p = POEMS.find(x=>x.id===id);
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(p.text);
+  u.lang = "zh-CN";
+  u.rate = 0.75;
+  u.pitch = 1.05;
+  const v = speechSynthesis.getVoices().find(v=>/zh[-_]?(CN|Hans)/i.test(v.lang));
+  if(v) u.voice = v;
+  u.onend = ()=>btn.textContent = "🔊 朗读";
+  btn.textContent = "⏹ 朗读中";
+  window.speechSynthesis.speak(u);
+}
+
+function initFilters(){
+  const dynasties = [...new Set(POEMS.map(p=>p.dynasty))];
+  const authors   = [...new Set(POEMS.map(p=>p.author))];
+  document.getElementById("fDynasty").innerHTML += dynasties.map(x=>`<option>${x}</option>`).join("");
+  document.getElementById("fAuthor").innerHTML  += authors.map(x=>`<option>${x}</option>`).join("");
+  const gSel = document.getElementById("fGrade");
+  for(let g=1; g<=9; g++) gSel.innerHTML += `<option value="${g}">${gradeLabel(g)}</option>`;
+
+  ["fGrade","fDynasty","fAuthor"].forEach(id => document.getElementById(id).onchange = render);
+  document.getElementById("fSearch").oninput = render;
+
+  document.querySelectorAll("#stageSeg button").forEach(b => b.onclick = () => {
+    stage = b.dataset.s;
+    document.querySelectorAll("#stageSeg button").forEach(x=>x.classList.toggle("on", x===b));
+    render();
+  });
+  document.querySelectorAll("#stateSeg button").forEach(b => b.onclick = () => {
+    only = b.dataset.v;
+    document.querySelectorAll("#stateSeg button").forEach(x=>x.classList.toggle("on", x===b));
+    render();
+  });
+  document.querySelectorAll("#pySeg button").forEach(b => b.onclick = () => {
+    showPinyin = b.dataset.v === "1";
+    document.querySelectorAll("#pySeg button").forEach(x=>x.classList.toggle("on", x===b));
+    render();
+  });
+  document.querySelectorAll("#quizSeg button").forEach(b => b.onclick = () => {
+    quiz = b.dataset.v === "1";
+    document.querySelectorAll("#quizSeg button").forEach(x=>x.classList.toggle("on", x===b));
+    render();
+  });
+}
+
+function exportData(){
+  const data = {user: cur, records: store(), exported: today()};
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `gushi_checkin_${cur}_${today()}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function importData(ev){
+  const f = ev.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const data = JSON.parse(r.result);
+      const u = data.user || cur;
+      localStorage.setItem("gsc_"+u, JSON.stringify(data.records || {}));
+      const list = userList();
+      if(!list.includes(u)){ list.push(u); saveUserList(list); }
+      alert("✅ 已恢复 " + u + " 的打卡数据");
+      ev.target.value = "";
+      if(u !== cur) switchUser(u); else render();
+    }catch(e){ alert("文件格式不正确"); }
+  };
+  r.readAsText(f);
+}
+
+if(window.POEMS){ initFilters(); if("speechSynthesis" in window) speechSynthesis.getVoices(); }
+render();
+</script>
+</body>
+</html>
