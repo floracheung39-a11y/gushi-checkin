@@ -4,13 +4,31 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>诗词星轨 · 古诗文打卡</title>
+<link rel="preload" href="fonts/gushi-kai.woff2?v=2" as="font" type="font/woff2" crossorigin>
 <script src="poems_data.js"></script>
 <style>
+  /* ===== 自托管字体：解决安卓/iOS 上没有楷体、拼音声调缺字形的问题 =====
+     正文楷体：文鼎 PL 简中楷（ARPHIC Public License，子集化后更名 GushiKaiBook，见 fonts/ARPHICPL.txt）
+     拼音等宽：霞鹜文楷 Mono 子集（SIL OFL，见 fonts/OFL.txt） */
+  @font-face{
+    font-family:"GushiKai";
+    src:url("fonts/gushi-kai.woff2?v=2") format("woff2");
+    font-weight:400;font-style:normal;font-display:swap;
+  }
+  @font-face{
+    font-family:"GushiPin";
+    src:url("fonts/gushi-pinyin.woff2?v=2") format("woff2");
+    font-weight:400;font-style:normal;font-display:swap;
+  }
   :root{
     --ink:#3a3226; --gold:#8e6b3f; --gold-l:#c9a063; --paper:#f6f3ee;
     --line:#e5dac4; --muted:#9a8b76; --done:#f3f9ee;
+    --ui-font:-apple-system,BlinkMacSystemFont,"PingFang SC","HarmonyOS Sans SC","MiSans","Source Han Sans SC","Noto Sans CJK SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+    --kai-font:"GushiKai","Kaiti SC","STKaiti","DFKai-SB","BiauKai","华文楷体","楷体","KaiTi",serif;
+    --pin-font:"GushiPin",ui-monospace,"Cascadia Mono",Consolas,"Courier New",Menlo,Monaco,monospace;
   }
-  *{margin:0;padding:0;box-sizing:border-box;font-family:"PingFang SC","Microsoft YaHei",sans-serif;-webkit-tap-highlight-color:transparent;}
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+  *{margin:0;padding:0;box-sizing:border-box;font-family:var(--ui-font);-webkit-tap-highlight-color:transparent;}
   body{background:var(--paper);color:var(--ink);min-height:100vh;}
 
   header{background:linear-gradient(135deg,#8e6b3f,#c9a063);color:#fff;padding:16px 24px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.15);position:sticky;top:0;z-index:50;}
@@ -56,13 +74,15 @@
   .detail{display:none;padding:6px 22px 18px;border-top:1px dashed var(--line);}
   .card.open .detail{display:block;}
 
-  .poem-text{font-family:"Kaiti SC","STKaiti","DFKai-SB","BiauKai","华文楷体","楷体","KaiTi","Adobe 楷体 Std R",serif;font-size:26px;line-height:1;color:#33291c;margin:18px 0;text-align:center;user-select:none;}
+  .poem-text{font-family:var(--kai-font);font-size:26px;line-height:1;color:#33291c;margin:22px 0 18px;text-align:center;user-select:none;}
   /* 每个字占固定宽度的格子：五言/七言上下行严格对齐，字间距随格子自然拉开 */
   .poem-text .line{display:block;margin-bottom:1.1em;}
   .cell{display:inline-block;width:1.7em;height:2em;position:relative;text-align:center;vertical-align:bottom;}
-  .cell .hz{display:inline-block;line-height:2em;font-family:"Kaiti SC","STKaiti","DFKai-SB","BiauKai","华文楷体","楷体","KaiTi","Adobe 楷体 Std R",serif;}
-  .cell .py{position:absolute;left:50%;bottom:100%;transform:translateX(-50%);font-family:ui-monospace,"Cascadia Mono",Consolas,"Courier New",Menlo,Monaco,monospace;font-size:0.55em;letter-spacing:0.02em;color:#a08c68;white-space:nowrap;line-height:1;}
-  .cell.punct{width:0.8em;line-height:2em;}
+  .cell .hz{display:inline-block;line-height:2em;font-family:var(--kai-font);}
+  .cell .py{position:absolute;left:50%;bottom:100%;transform:translateX(-50%);font-family:var(--pin-font);font-size:0.52em;letter-spacing:0;color:#a08c68;white-space:nowrap;line-height:1.1;}
+  .cell .py.long{font-size:0.45em;}
+  .cell .py.xlong{font-size:0.38em;}
+  .cell.punct{width:0.7em;line-height:2em;}
   .no-pinyin .cell .py{display:none;}
   /* 背诵自测：隐藏原文只留拼音 */
   .hide-char .cell .hz{color:transparent;text-shadow:none;background:#e8ddc8;border-radius:3px;}
@@ -83,9 +103,17 @@
   .empty{text-align:center;color:#b3a488;padding:50px 0;line-height:2;}
   .hf{display:flex;gap:8px;align-items:center;}
   @media(max-width:640px){
-    .poem-text{font-size:22px;}
+    header{padding:12px 14px;gap:8px;}
     header h1{font-size:16px;letter-spacing:1px;}
+    .stats{padding:10px 14px;gap:6px;}
+    .filters{padding:12px 14px 4px;}
     .filters input{width:100%;}
+    main{padding:6px 14px 60px;}
+    .badge-wrap{padding:0 14px;}
+    .poem-text{font-size:22px;margin:20px 0 14px;}
+    .cell{width:1.62em;}
+    .cell.punct{width:0.7em;}
+    .detail{padding:6px 10px 16px;}
   }
 </style>
 </head>
@@ -380,11 +408,12 @@ function render(){
   el.innerHTML = list.length ? list.map(p=>{
     const done = !!d[p.id];
     const body = poemLines(p).map(line =>
-      `<span class="line">` + line.map(ch =>
-        ch.p
-          ? `<span class="cell"><span class="py">${mark(ch.p, ch.t)}</span><span class="hz">${ch.c}</span></span>`
-          : `<span class="cell punct">${ch.c}</span>`
-      ).join("") + `</span>`
+      `<span class="line">` + line.map(ch => {
+        if(!ch.p) return `<span class="cell punct">${ch.c}</span>`;
+        const py = mark(ch.p, ch.t);
+        const cls = py.length >= 9 ? "py xlong" : py.length >= 7 ? "py long" : "py";
+        return `<span class="cell"><span class="${cls}">${py}</span><span class="hz">${ch.c}</span></span>`;
+      }).join("") + `</span>`
     ).join("");
     return `
     <div class="card ${done?"done":""}" id="card-${p.id}">
